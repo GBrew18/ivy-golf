@@ -1,49 +1,46 @@
 using UnityEngine;
 
-// Ensures this GameObject always has a Rigidbody component.
 [RequireComponent(typeof(Rigidbody))]
 public class BallShooter : MonoBehaviour
 {
-    [Header("Shot Settings")]
-    [Tooltip("Impulse force applied in the ball's forward direction when Space is pressed.")]
-    [SerializeField] private float shotForce = 8f;
+    public float maxForce = 20f;
+    public float chargeSpeed = 15f;
 
-    private Rigidbody ballRigidbody;
-    private bool shotQueued;
+    private Rigidbody rb;
+    private float currentForce = 0f;
+    private bool isCharging = false;
 
-    private void Awake()
+    void Start()
     {
-        // Cache the Rigidbody reference once for performance and clarity.
-        ballRigidbody = GetComponent<Rigidbody>();
+        rb = GetComponent<Rigidbody>();
     }
 
-    private void Update()
+    void Update()
     {
-        // Read player input in Update so key presses are not missed between physics ticks.
+        // Start charging when space is pressed
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            shotQueued = true;
+            isCharging = true;
+            currentForce = 0f;
+        }
+
+        // Increase power while space is held
+        if (Input.GetKey(KeyCode.Space) && isCharging)
+        {
+            currentForce += chargeSpeed * Time.deltaTime;
+            currentForce = Mathf.Clamp(currentForce, 0f, maxForce);
+        }
+
+        // Release shot when space is released
+        if (Input.GetKeyUp(KeyCode.Space) && isCharging)
+        {
+            Shoot();
+            isCharging = false;
         }
     }
 
-    private void FixedUpdate()
+    void Shoot()
     {
-        // Apply physics forces in FixedUpdate for consistent Rigidbody behavior.
-        if (!shotQueued)
-        {
-            return;
-        }
-
-        shotQueued = false;
-        ballRigidbody.AddForce(transform.forward * shotForce, ForceMode.Impulse);
-    }
-
-    private void OnValidate()
-    {
-        // Prevent negative force values from the Inspector.
-        if (shotForce < 0f)
-        {
-            shotForce = 0f;
-        }
+        rb.AddForce(transform.forward * currentForce, ForceMode.Impulse);
     }
 }
