@@ -18,6 +18,10 @@ public class RangeBuilder : MonoBehaviour
     [Tooltip("Remove colliders from generated primitives if you do not need physics interaction.")]
     [SerializeField] private bool removePrimitiveColliders = false;
 
+    [Header("Ball Reference")]
+    [Tooltip("Optional: assign the golf ball to sync its ResetShot tee position after the range is built.")]
+    [SerializeField] private ResetShot ballResetShot;
+
     [Header("Tee Mat")]
     [SerializeField] private Vector3 teeSize = new Vector3(2f, 0.1f, 3f);
     [Tooltip("Local offset from this GameObject. Keep Z near 0 so the tee is near origin.")]
@@ -79,6 +83,18 @@ public class RangeBuilder : MonoBehaviour
             teeColor
         );
 
+        // Notify the ball's ResetShot of the actual tee surface position so
+        // pressing R always returns to the correct spot even when the range
+        // is built at runtime rather than placed in the Editor.
+        if (ballResetShot != null)
+        {
+            // Top surface of the tee mat in world space.
+            Vector3 teeWorldPos = transform.TransformPoint(
+                new Vector3(teeCenter.x, teeCenter.y + teeSize.y * 0.5f, teeCenter.z)
+            );
+            ballResetShot.SetStartPosition(teeWorldPos);
+        }
+
         // Fairway strip (cube): starts in front of tee and extends forward (+Z).
         float teeFrontZ = teeCenter.z + (teeSize.z * 0.5f);
         float fairwayCenterZ = teeFrontZ + gapFromTee + (rangeLength * 0.5f);
@@ -126,7 +142,6 @@ public class RangeBuilder : MonoBehaviour
                     targetColor
                 );
 
-                // Optional: keep names clean if distance was clamped.
                 target.name = $"Target_{distance:0.#}m";
             }
         }
