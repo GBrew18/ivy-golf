@@ -1,14 +1,17 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Attach this to your AimPivot.
 /// Uses a LineRenderer to preview where the golf ball will travel.
+/// The arc is only visible while the player is charging a shot and
+/// stops drawing at <see cref="groundHeight"/> to avoid clipping through terrain.
 /// </summary>
 [RequireComponent(typeof(LineRenderer))]
 public class TrajectoryPreview : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("BallShooter used to match launch settings (max force + loft).")]
+    [Tooltip("BallShooter used to read current charge force, loft, and charging state.")]
     [SerializeField] private BallShooter ballShooter;
 
     [Tooltip("Golf ball Rigidbody. Used for start position and mass.")]
@@ -26,10 +29,9 @@ public class TrajectoryPreview : MonoBehaviour
     [Tooltip("Time between each sample point (seconds).")]
     [SerializeField] private float timeStep = 0.08f;
 
-    [Header("Shot Preview")]
-    [Min(0f)]
-    [Tooltip("Preview shot force (same units as BallShooter force).")]
-    [SerializeField] private float previewForce = 10f;
+    [Header("Ground Clipping")]
+    [Tooltip("World-space Y height below which trajectory points are not drawn (prevents clipping through ground).")]
+    [SerializeField] private float groundHeight = 0f;
 
     [Range(0f, 1f)]
     [Tooltip("Fallback loft used only if BallShooter is not assigned.")]
@@ -53,6 +55,17 @@ public class TrajectoryPreview : MonoBehaviour
 
     private void Update()
     {
+        // Hide the arc entirely when not charging.
+        if (ballShooter != null && !ballShooter.IsCharging)
+        {
+            if (lineRenderer != null)
+                lineRenderer.enabled = false;
+            return;
+        }
+
+        if (lineRenderer != null)
+            lineRenderer.enabled = true;
+
         DrawTrajectory();
     }
 
@@ -61,21 +74,36 @@ public class TrajectoryPreview : MonoBehaviour
         if (lineRenderer == null)
             return;
 
-        int points = Mathf.Max(2, sampleCount);
-        lineRenderer.positionCount = points;
-
         Vector3 startPosition = GetStartPosition();
         Vector3 initialVelocity = CalculateInitialVelocity();
         Vector3 gravity = Physics.gravity;
 
         // Projectile motion formula:
         // position = start + (velocity * t) + 0.5 * gravity * t^2
-        for (int i = 0; i < points; i++)
+        // Stop adding points once the predicted Y drops below groundHeight.
+        int maxPoints = Mathf.Max(2, sampleCount);
+        List<Vector3> points = new List<Vector3>(maxPoints);
+
+        for (int i = 0; i < maxPoints; i++)
         {
             float t = i * timeStep;
             Vector3 point = startPosition + initialVelocity * t + 0.5f * gravity * t * t;
-            lineRenderer.SetPosition(i, point);
+
+            if (i > 0 && point.y < groundHeight)
+                break;
+
+            points.Add(point);
         }
+
+        // Need at least 2 points for a visible line.
+        if (points.Count < 2)
+        {
+            lineRenderer.positionCount = 0;
+            return;
+        }
+
+        lineRenderer.positionCount = points.Count;
+        lineRenderer.SetPositions(points.ToArray());
     }
 
     private Vector3 GetStartPosition()
@@ -91,12 +119,12 @@ public class TrajectoryPreview : MonoBehaviour
 
     private Vector3 CalculateInitialVelocity()
     {
-        float maxForce = ballShooter != null ? ballShooter.maxForce : Mathf.Infinity;
-        float launchForce = Mathf.Clamp(previewForce, 0f, maxForce);
+        // Read the live charge force from BallShooter each frame.
+        float launchForce = ballShooter != null ? ballShooter.CurrentForce : 0f;
+        float loft = ballShooter != null ? ballShooter.loftFactor : fallbackLoftFactor;
 
         // Match BallShooter launch logic:
         // impulse = forward * force + up * (force * loftFactor)
-        float loft = ballShooter != null ? ballShooter.loftFactor : fallbackLoftFactor;
         Vector3 launchImpulse = (transform.forward * launchForce) + (Vector3.up * (launchForce * loft));
 
         // ForceMode.Impulse changes velocity by impulse / mass.
@@ -119,6 +147,5 @@ public class TrajectoryPreview : MonoBehaviour
     {
         sampleCount = Mathf.Max(2, sampleCount);
         timeStep = Mathf.Max(0.01f, timeStep);
-        previewForce = Mathf.Max(0f, previewForce);
     }
 }

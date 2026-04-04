@@ -16,6 +16,12 @@ public class BallShooter : MonoBehaviour
     private float currentForce = 0f;
     private bool isCharging = false;
 
+    /// <summary>Current charge force accumulated while holding the shot button.</summary>
+    public float CurrentForce => currentForce;
+
+    /// <summary>True while the player is holding the shot button to charge power.</summary>
+    public bool IsCharging => isCharging;
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -28,6 +34,7 @@ public class BallShooter : MonoBehaviour
         {
             isCharging = true;
             currentForce = 0f;
+            GameStateManager.Instance?.SetState(GameStateManager.GameState.Charging);
         }
 
         // Increase power while space is held
@@ -42,6 +49,7 @@ public class BallShooter : MonoBehaviour
         {
             Shoot();
             isCharging = false;
+            GameStateManager.Instance?.SetState(GameStateManager.GameState.InFlight);
         }
     }
 
