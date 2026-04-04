@@ -9,7 +9,7 @@ using UnityEngine;
 public class GameStateManager : MonoBehaviour
 {
     /// <summary>All high-level phases of a single shot.</summary>
-    public enum GameState { Aiming, Charging, InFlight, Landed }
+    public enum GameState { Aiming, Charging, InFlight, Landed, HoledOut }
 
     /// <summary>The single shared instance of <see cref="GameStateManager"/>.</summary>
     public static GameStateManager Instance { get; private set; }

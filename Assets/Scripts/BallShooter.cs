@@ -4,13 +4,16 @@ using UnityEngine;
 public class BallShooter : MonoBehaviour
 {
     [Header("Power")]
-    public float maxForce = 20f;
+    // maxForce=25 + loftFactor=0.75 → ~37° launch angle, ~95 units at full power on flat ground.
+    // Matches Wii Sports Golf: nice high arc, good hang time, lands satisfyingly.
+    public float maxForce = 25f;
     public float chargeSpeed = 15f;
 
     [Header("Launch Arc")]
-    [Tooltip("How much upward impulse is added relative to the charged forward force.")]
+    [Tooltip("Upward impulse as a fraction of forward impulse. " +
+             "0.75 ≈ 37-degree launch — Wii Sports-style arc with good hang time.")]
     [Range(0f, 1f)]
-    public float loftFactor = 0.15f;
+    public float loftFactor = 0.75f;
 
     private Rigidbody rb;
     private float currentForce = 0f;
