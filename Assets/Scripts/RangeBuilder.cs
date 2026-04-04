@@ -142,6 +142,11 @@ public class RangeBuilder : MonoBehaviour
                     targetColor
                 );
 
+                // Attach TargetZone and record metadata so hit events carry context.
+                TargetZone zone = target.AddComponent<TargetZone>();
+                zone.targetIndex = i;
+                zone.distanceFromTee = distance;
+
                 target.name = $"Target_{distance:0.#}m";
             }
         }
