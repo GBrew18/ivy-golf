@@ -6,6 +6,11 @@ public class AimController : MonoBehaviour
 
     void Update()
     {
+        // Only allow aiming when the game is in the Aiming state.
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.CurrentState != GameStateManager.GameState.Aiming)
+            return;
+
         float input = 0f;
 
         if (Input.GetKey(KeyCode.A))

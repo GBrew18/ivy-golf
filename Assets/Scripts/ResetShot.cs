@@ -12,7 +12,7 @@ public class ResetShot : MonoBehaviour
 
     private Rigidbody rb;
 
-    // Saved starting transform values (captured when the game begins).
+    // Saved starting transform values.
     private Vector3 startPosition;
     private Quaternion startRotation;
 
@@ -21,6 +21,7 @@ public class ResetShot : MonoBehaviour
         rb = GetComponent<Rigidbody>();
 
         // Store where the ball starts at the beginning of play.
+        // RangeBuilder may override this via SetStartPosition() after Start() runs.
         startPosition = transform.position;
         startRotation = transform.rotation;
     }
@@ -32,6 +33,15 @@ public class ResetShot : MonoBehaviour
         {
             ResetBallToStart();
         }
+    }
+
+    /// <summary>
+    /// Overrides the tee position used by <see cref="ResetBallToStart"/>.
+    /// Call this after the tee is placed at runtime (e.g. from <c>RangeBuilder</c>).
+    /// </summary>
+    public void SetStartPosition(Vector3 pos)
+    {
+        startPosition = pos;
     }
 
     /// <summary>
@@ -49,5 +59,7 @@ public class ResetShot : MonoBehaviour
 
         // Optional: put rigidbody to sleep so it stays still until acted on.
         rb.Sleep();
+
+        GameStateManager.Instance?.SetState(GameStateManager.GameState.Aiming);
     }
 }
