@@ -29,9 +29,14 @@ public class BallShooter : MonoBehaviour
 
     void Update()
     {
-        // Start charging when space is pressed
+        // Start charging when space is pressed — blocked during flight so the
+        // player cannot fire a second shot before the ball has landed.
         if (Input.GetKeyDown(KeyCode.Space))
         {
+            if (GameStateManager.Instance != null &&
+                GameStateManager.Instance.CurrentState == GameStateManager.GameState.InFlight)
+                return;
+
             isCharging = true;
             currentForce = 0f;
             GameStateManager.Instance?.SetState(GameStateManager.GameState.Charging);
