@@ -1,17 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
-/// Attach this to your AimPivot.
-/// Uses a LineRenderer to preview where the golf ball will travel.
-/// The arc is only visible while the player is charging a shot and
-/// stops drawing at <see cref="groundHeight"/> to avoid clipping through terrain.
+/// Wii Sports-style faint trajectory arc preview.
+/// Attach to any GameObject in the scene. The arc uses the AimController's forward
+/// direction (not world forward) and is only visible during the Charging state.
 /// </summary>
 [RequireComponent(typeof(LineRenderer))]
 public class TrajectoryPreview : MonoBehaviour
 {
     [Header("References")]
-    [Tooltip("BallShooter used to read current charge force, loft, and charging state.")]
+    [Tooltip("BallShooter used to read current charge force and charging state.")]
     [SerializeField] private BallShooter ballShooter;
 
     [Tooltip("Golf ball Rigidbody. Used for start position and mass.")]
@@ -21,33 +21,26 @@ public class TrajectoryPreview : MonoBehaviour
     [SerializeField] private LineRenderer lineRenderer;
 
     [Header("Preview Sampling")]
-    [Min(2)]
-    [Tooltip("How many points are used to draw the line.")]
-    [SerializeField] private int sampleCount = 30;
+    [Min(2)][Max(18)]
+    [Tooltip("How many points are used to draw the line (max 18).")]
+    [SerializeField] private int sampleCount = 18;
 
     [Min(0.01f)]
     [Tooltip("Time between each sample point (seconds).")]
     [SerializeField] private float timeStep = 0.08f;
 
     [Header("Ground Clipping")]
-    [Tooltip("World-space Y height below which trajectory points are not drawn (prevents clipping through ground).")]
+    [Tooltip("World-space Y height below which trajectory points are not drawn.")]
     [SerializeField] private float groundHeight = 0f;
-
-    [Header("Charge Color Gradient")]
-    [Tooltip("Line color at minimum charge.")]
-    [SerializeField] private Color colorLow  = Color.green;
-    [Tooltip("Line color at 50% charge.")]
-    [SerializeField] private Color colorMid  = Color.yellow;
-    [Tooltip("Line color at maximum charge.")]
-    [SerializeField] private Color colorHigh = Color.red;
 
     [Range(0f, 1f)]
     [Tooltip("Fallback loft used only if BallShooter is not assigned.")]
     [SerializeField] private float fallbackLoftFactor = 0.15f;
 
+    private AimController _aimController;
+
     private void Reset()
     {
-        // Auto-fill LineRenderer when script is first added.
         lineRenderer = GetComponent<LineRenderer>();
     }
 
@@ -56,72 +49,84 @@ public class TrajectoryPreview : MonoBehaviour
         if (lineRenderer == null)
             lineRenderer = GetComponent<LineRenderer>();
 
-        // Helpful auto-link if BallShooter is assigned but Rigidbody is not.
         if (ballRigidbody == null && ballShooter != null)
             ballRigidbody = ballShooter.GetComponent<Rigidbody>();
+
+        // Cache aim controller so we use the correct forward direction
+        _aimController = FindObjectOfType<AimController>();
+
+        SetupLineRenderer();
+    }
+
+    private void SetupLineRenderer()
+    {
+        if (lineRenderer == null) return;
+
+        // Sprites/Default supports transparency — required for the faint arc
+        Material mat = new Material(Shader.Find("Sprites/Default"));
+        lineRenderer.material = mat;
+
+        // Very thin, tapering line — Wii Sports style
+        lineRenderer.startWidth = 0.012f;
+        lineRenderer.endWidth   = 0f;
+
+        // No shadows from a UI-hint line
+        lineRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        lineRenderer.receiveShadows    = false;
+        lineRenderer.useWorldSpace     = true;
+
+        // Gradient: semi-transparent white fading to fully transparent
+        Gradient grad = new Gradient();
+        grad.SetKeys(
+            new GradientColorKey[]
+            {
+                new GradientColorKey(Color.white, 0f),
+                new GradientColorKey(Color.white, 1f)
+            },
+            new GradientAlphaKey[]
+            {
+                new GradientAlphaKey(0.25f, 0f),
+                new GradientAlphaKey(0f,    1f)
+            }
+        );
+        lineRenderer.colorGradient = grad;
+        lineRenderer.enabled = false;
     }
 
     private void Update()
     {
-        // Hide the arc entirely when not charging.
-        if (ballShooter != null && !ballShooter.IsCharging)
+        // Arc only visible while charging — completely hidden otherwise
+        if (ballShooter == null || !ballShooter.IsCharging)
         {
-            if (lineRenderer != null)
-                lineRenderer.enabled = false;
+            if (lineRenderer != null) lineRenderer.enabled = false;
             return;
         }
 
-        if (lineRenderer != null)
-            lineRenderer.enabled = true;
-
-        UpdateLineColor();
+        if (lineRenderer != null) lineRenderer.enabled = true;
         DrawTrajectory();
-    }
-
-    // Interpolates green → yellow → red as charge builds toward maxForce.
-    private void UpdateLineColor()
-    {
-        if (lineRenderer == null || ballShooter == null) return;
-
-        float t = ballShooter.maxForce > 0f
-            ? ballShooter.CurrentForce / ballShooter.maxForce
-            : 0f;
-
-        Color c = t <= 0.5f
-            ? Color.Lerp(colorLow,  colorMid,  t * 2f)
-            : Color.Lerp(colorMid, colorHigh, (t - 0.5f) * 2f);
-
-        lineRenderer.startColor = c;
-        lineRenderer.endColor   = c;
     }
 
     private void DrawTrajectory()
     {
-        if (lineRenderer == null)
-            return;
+        if (lineRenderer == null) return;
 
-        Vector3 startPosition = GetStartPosition();
+        Vector3 startPos        = GetStartPosition();
         Vector3 initialVelocity = CalculateInitialVelocity();
-        Vector3 gravity = Physics.gravity;
+        Vector3 gravity         = Physics.gravity;
 
-        // Projectile motion formula:
-        // position = start + (velocity * t) + 0.5 * gravity * t^2
-        // Stop adding points once the predicted Y drops below groundHeight.
-        int maxPoints = Mathf.Max(2, sampleCount);
+        int maxPoints = Mathf.Clamp(sampleCount, 2, 18);
         List<Vector3> points = new List<Vector3>(maxPoints);
 
         for (int i = 0; i < maxPoints; i++)
         {
-            float t = i * timeStep;
-            Vector3 point = startPosition + initialVelocity * t + 0.5f * gravity * t * t;
+            float   t  = i * timeStep;
+            Vector3 pt = startPos + initialVelocity * t + 0.5f * gravity * t * t;
 
-            if (i > 0 && point.y < groundHeight)
-                break;
+            if (i > 0 && pt.y < groundHeight) break;
 
-            points.Add(point);
+            points.Add(pt);
         }
 
-        // Need at least 2 points for a visible line.
         if (points.Count < 2)
         {
             lineRenderer.positionCount = 0;
@@ -134,44 +139,48 @@ public class TrajectoryPreview : MonoBehaviour
 
     private Vector3 GetStartPosition()
     {
-        if (ballRigidbody != null)
-            return ballRigidbody.position;
-
-        if (ballShooter != null)
-            return ballShooter.transform.position;
-
+        if (ballRigidbody != null) return ballRigidbody.position;
+        if (ballShooter   != null) return ballShooter.transform.position;
         return transform.position;
     }
 
     private Vector3 CalculateInitialVelocity()
     {
-        // Read the live charge force from BallShooter each frame.
         float launchForce = ballShooter != null ? ballShooter.CurrentForce : 0f;
-        float loft = ballShooter != null ? ballShooter.loftFactor : fallbackLoftFactor;
 
-        // Match BallShooter launch logic:
-        // impulse = forward * force + up * (force * loftFactor)
-        Vector3 launchImpulse = (transform.forward * launchForce) + (Vector3.up * (launchForce * loft));
+        // IMPORTANT: use AimController's forward, not world/self forward.
+        // This fixes the "arc shoots sideways" bug.
+        Vector3 forward = (_aimController != null)
+            ? _aimController.transform.forward
+            : transform.forward;
 
-        // ForceMode.Impulse changes velocity by impulse / mass.
+        Vector3 impulse;
+        float angleOverride = ballShooter != null ? ballShooter.LaunchAngleOverride : 0f;
+
+        if (angleOverride > 0f)
+        {
+            // Club-specific launch angle (degrees → radians)
+            float rad = angleOverride * Mathf.Deg2Rad;
+            impulse = (forward * Mathf.Cos(rad) + Vector3.up * Mathf.Sin(rad)) * launchForce;
+        }
+        else
+        {
+            // Fallback: loftFactor-based launch (matches BallShooter.Shoot)
+            float loft = ballShooter != null ? ballShooter.loftFactor : fallbackLoftFactor;
+            impulse = forward * launchForce + Vector3.up * (launchForce * loft);
+        }
+
         float mass = 1f;
         if (ballRigidbody != null)
-        {
             mass = Mathf.Max(0.0001f, ballRigidbody.mass);
-        }
-        else if (ballShooter != null)
-        {
-            Rigidbody shooterRb = ballShooter.GetComponent<Rigidbody>();
-            if (shooterRb != null)
-                mass = Mathf.Max(0.0001f, shooterRb.mass);
-        }
 
-        return launchImpulse / mass;
+        // ForceMode.Impulse: velocity change = impulse / mass
+        return impulse / mass;
     }
 
     private void OnValidate()
     {
-        sampleCount = Mathf.Max(2, sampleCount);
-        timeStep = Mathf.Max(0.01f, timeStep);
+        sampleCount = Mathf.Clamp(sampleCount, 2, 18);
+        timeStep    = Mathf.Max(0.01f, timeStep);
     }
 }

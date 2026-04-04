@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Bottom-left carousel showing the current club and its neighbours.
+/// Wii Sports-style club selector — a clean horizontal pill at the bottom-left.
+/// Shows the current club name in white (selected in yellow/gold).
 /// Q = cycle left, E = cycle right (Aiming state only).
 /// Fires OnClubChanged(ClubDefinition) when the selection changes.
 /// </summary>
@@ -14,14 +15,7 @@ public class ClubSelectorUI : MonoBehaviour
     private ClubDefinition[] _clubs;
     private int _index;
 
-    private RectTransform _strip;
-    private Text          _leftText;
-    private Text          _centerText;
-    private Text          _rightText;
-
-    private float _stripCurrentX;
-    private float _stripTargetX;
-    private const float SlideSpeed = 14f;
+    private Text _centerText;
 
     public ClubDefinition CurrentClub => _clubs[_index];
 
@@ -42,72 +36,65 @@ public class ClubSelectorUI : MonoBehaviour
         gameObject.AddComponent<CanvasScaler>();
         gameObject.AddComponent<GraphicRaycaster>();
 
-        // Dark background panel — bottom-left, above the power meter
+        // Wii Sports-style: clean horizontal pill at bottom-left
+        // Dark semi-transparent background, club name in white/gold
         GameObject panel = new GameObject("ClubPanel");
         panel.transform.SetParent(canvas.transform, false);
         Image bg = panel.AddComponent<Image>();
-        bg.color = new Color(0f, 0f, 0f, 0.55f);
+        bg.color = new Color(0f, 0f, 0f, 0.60f);
         RectTransform panelRT = panel.GetComponent<RectTransform>();
         panelRT.anchorMin        = new Vector2(0f, 0f);
         panelRT.anchorMax        = new Vector2(0f, 0f);
         panelRT.pivot            = new Vector2(0f, 0f);
-        panelRT.sizeDelta        = new Vector2(280f, 50f);
-        panelRT.anchoredPosition = new Vector2(10f, 160f);
+        panelRT.sizeDelta        = new Vector2(160f, 36f);
+        panelRT.anchoredPosition = new Vector2(20f, 20f);
 
-        // Strip: slides for the transition animation
-        GameObject stripGO = new GameObject("Strip");
-        stripGO.transform.SetParent(panel.transform, false);
-        _strip = stripGO.AddComponent<RectTransform>();
-        _strip.anchorMin        = new Vector2(0.5f, 0.5f);
-        _strip.anchorMax        = new Vector2(0.5f, 0.5f);
-        _strip.pivot            = new Vector2(0.5f, 0.5f);
-        _strip.sizeDelta        = new Vector2(280f, 50f);
-        _strip.anchoredPosition = Vector2.zero;
+        // Club icon placeholder (small circle on the left)
+        GameObject iconGO = new GameObject("ClubIcon");
+        iconGO.transform.SetParent(panel.transform, false);
+        Image iconImg = iconGO.AddComponent<Image>();
+        iconImg.color = new Color(0.7f, 0.7f, 0.7f, 0.5f);
+        RectTransform iconRT = iconGO.GetComponent<RectTransform>();
+        iconRT.anchorMin        = new Vector2(0f, 0.5f);
+        iconRT.anchorMax        = new Vector2(0f, 0.5f);
+        iconRT.pivot            = new Vector2(0f, 0.5f);
+        iconRT.sizeDelta        = new Vector2(22f, 22f);
+        iconRT.anchoredPosition = new Vector2(7f, 0f);
 
-        _leftText   = MakeLabel(stripGO.transform, "Left",   new Vector2(-90f, 0f), 12, false);
-        _centerText = MakeLabel(stripGO.transform, "Center", new Vector2(  0f, 0f), 17, true);
-        _rightText  = MakeLabel(stripGO.transform, "Right",  new Vector2( 90f, 0f), 12, false);
+        // Club name text — yellow/gold for the selected club
+        GameObject nameGO = new GameObject("ClubName");
+        nameGO.transform.SetParent(panel.transform, false);
+        _centerText            = nameGO.AddComponent<Text>();
+        _centerText.font       = GetBuiltinFont();
+        _centerText.fontSize   = 15;
+        _centerText.fontStyle  = FontStyle.Bold;
+        _centerText.alignment  = TextAnchor.MiddleLeft;
+        _centerText.color      = new Color(1f, 0.85f, 0.20f, 1f);  // gold/yellow
+        RectTransform nameRT = nameGO.GetComponent<RectTransform>();
+        nameRT.anchorMin        = new Vector2(0f, 0f);
+        nameRT.anchorMax        = new Vector2(1f, 1f);
+        nameRT.offsetMin        = new Vector2(36f, 0f);  // leave room for icon
+        nameRT.offsetMax        = new Vector2(-6f, 0f);
 
-        // Key hint below the panel
-        GameObject hint = new GameObject("Hint");
-        hint.transform.SetParent(panel.transform, false);
-        Text hintText = hint.AddComponent<Text>();
-        hintText.text      = "Q  /  E";
+        // Subtle Q/E hint in the corner
+        GameObject hintGO = new GameObject("QEHint");
+        hintGO.transform.SetParent(panel.transform, false);
+        Text hintText = hintGO.AddComponent<Text>();
+        hintText.text      = "Q / E";
         hintText.font      = GetBuiltinFont();
-        hintText.fontSize  = 10;
-        hintText.alignment = TextAnchor.MiddleCenter;
-        hintText.color     = new Color(0.6f, 0.6f, 0.6f, 1f);
-        RectTransform hintRT = hint.GetComponent<RectTransform>();
+        hintText.fontSize  = 8;
+        hintText.alignment = TextAnchor.MiddleRight;
+        hintText.color     = new Color(0.5f, 0.5f, 0.5f, 1f);
+        RectTransform hintRT = hintGO.GetComponent<RectTransform>();
         hintRT.anchorMin        = new Vector2(0f, 0f);
         hintRT.anchorMax        = new Vector2(1f, 0f);
-        hintRT.pivot            = new Vector2(0.5f, 1f);
-        hintRT.sizeDelta        = new Vector2(0f, 14f);
-        hintRT.anchoredPosition = new Vector2(0f, -2f);
-    }
-
-    private Text MakeLabel(Transform parent, string objName, Vector2 pos, int size, bool bold)
-    {
-        GameObject go = new GameObject(objName);
-        go.transform.SetParent(parent, false);
-        RectTransform rt = go.AddComponent<RectTransform>();
-        rt.anchoredPosition = pos;
-        rt.sizeDelta        = new Vector2(90f, 44f);
-        Text t = go.AddComponent<Text>();
-        t.font      = GetBuiltinFont();
-        t.fontSize  = size;
-        t.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
-        t.alignment = TextAnchor.MiddleCenter;
-        t.color     = bold ? Color.white : new Color(0.72f, 0.72f, 0.72f);
-        return t;
+        hintRT.pivot            = new Vector2(1f, 0f);
+        hintRT.sizeDelta        = new Vector2(0f, 10f);
+        hintRT.anchoredPosition = new Vector2(-4f, -1f);
     }
 
     private void Update()
     {
-        // Smooth strip slide back to center
-        _stripCurrentX = Mathf.Lerp(_stripCurrentX, _stripTargetX, SlideSpeed * Time.deltaTime);
-        if (_strip != null)
-            _strip.anchoredPosition = new Vector2(_stripCurrentX, 0f);
-
         // Only accept input while aiming
         if (GameStateManager.Instance?.CurrentState != GameStateManager.GameState.Aiming) return;
 
@@ -119,29 +106,26 @@ public class ClubSelectorUI : MonoBehaviour
 
     private void CycleLeft()
     {
-        _index          = (_index - 1 + _clubs.Length) % _clubs.Length;
-        _stripCurrentX  = -90f;   // snap offset, then slide to 0
-        _stripTargetX   = 0f;
+        _index = (_index - 1 + _clubs.Length) % _clubs.Length;
         RefreshLabels();
-        OnClubChanged?.Invoke(_clubs[_index]);
+        var def = _clubs[_index];
+        Debug.Log($"Club changed to: {def.clubName}");
+        OnClubChanged?.Invoke(def);
     }
 
     private void CycleRight()
     {
-        _index          = (_index + 1) % _clubs.Length;
-        _stripCurrentX  = 90f;    // snap offset, then slide to 0
-        _stripTargetX   = 0f;
+        _index = (_index + 1) % _clubs.Length;
         RefreshLabels();
-        OnClubChanged?.Invoke(_clubs[_index]);
+        var def = _clubs[_index];
+        Debug.Log($"Club changed to: {def.clubName}");
+        OnClubChanged?.Invoke(def);
     }
 
     private void RefreshLabels()
     {
-        int left  = (_index - 1 + _clubs.Length) % _clubs.Length;
-        int right = (_index + 1) % _clubs.Length;
-        _leftText.text   = _clubs[left].clubName;
-        _centerText.text = _clubs[_index].clubName;
-        _rightText.text  = _clubs[right].clubName;
+        if (_centerText != null)
+            _centerText.text = _clubs[_index].clubName;
     }
 
     private static Font GetBuiltinFont()

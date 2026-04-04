@@ -1,21 +1,47 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
 /// Auto-wires <see cref="PowerMeterUI"/> into every scene that contains a
-/// <see cref="BallShooter"/> — no Inspector setup required.
-/// The method runs once after the first scene finishes loading.
+/// <see cref="BallShooter"/>.
+/// Uses a one-frame delayed coroutine to ensure all other scene objects have
+/// finished their Awake/Start before we search for BallShooter.
 /// </summary>
 public static class PowerMeterBootstrapper
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
-        BallShooter shooter = Object.FindObjectOfType<BallShooter>();
-        if (shooter == null) return;   // no ball in this scene — skip
+        // Spawn a tiny MonoBehaviour runner so we can yield one frame
+        GameObject runner = new GameObject("_PowerMeterBootstrapRunner");
+        runner.AddComponent<PowerMeterBootstrapRunner>();
+    }
+}
 
-        GameObject go = new GameObject("PowerMeter");
-        PowerMeterUI ui = go.AddComponent<PowerMeterUI>();
+/// <summary>
+/// Helper MonoBehaviour that waits one frame, then instantiates PowerMeterUI.
+/// Destroys itself when done.
+/// </summary>
+public class PowerMeterBootstrapRunner : MonoBehaviour
+{
+    private IEnumerator Start()
+    {
+        // Wait one frame — ensures BallShooter has fully awakened
+        yield return null;
+
+        BallShooter shooter = FindObjectOfType<BallShooter>();
+        if (shooter == null)
+        {
+            Destroy(gameObject);
+            yield break;
+        }
+
+        // Check canvas render mode explicitly
+        GameObject pmGO  = new GameObject("PowerMeter");
+        PowerMeterUI ui  = pmGO.AddComponent<PowerMeterUI>();
         ui.Init(shooter);
-        Object.DontDestroyOnLoad(go);
+        DontDestroyOnLoad(pmGO);
+
+        Destroy(gameObject);
     }
 }

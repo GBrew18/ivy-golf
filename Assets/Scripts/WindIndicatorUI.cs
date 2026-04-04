@@ -2,18 +2,19 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Compass-style wind readout in the top-right corner.
-/// Shows a rotating arrow (direction the wind is blowing toward) and
-/// a speed label in m/s. Built entirely in code — no scene setup required.
-/// Created automatically by <see cref="WindBootstrapper"/>.
+/// Wii Sports-style wind/distance readout — teal rectangular panel in the top-right corner.
+/// Shows a distance-to-pin placeholder ("-- yds") and wind speed + direction below it.
+/// Built entirely in code — no scene setup required.
+/// Created automatically by WindBootstrapper.
 /// </summary>
 public class WindIndicatorUI : MonoBehaviour
 {
-    private RectTransform _arrowPivot;   // the rect we rotate
+    private RectTransform _arrowPivot;
+    private Text          _distanceText;
     private Text          _speedText;
-    private Text          _calmsText;    // "CALM" label shown at zero wind
 
-    private const float PanelSize = 80f;
+    // Teal panel matching Wii Sports Golf color language
+    private static readonly Color PanelColor = new Color(0.10f, 0.65f, 0.75f, 0.85f);
 
     private void Awake()
     {
@@ -24,17 +25,23 @@ public class WindIndicatorUI : MonoBehaviour
     {
         if (WindSystem.Instance == null) return;
 
-        Vector3 wind   = WindSystem.Instance.CurrentWind;
-        float   speed  = wind.magnitude;
-        bool    calm   = speed < 0.05f;
+        Vector3 wind  = WindSystem.Instance.CurrentWind;
+        float   speed = wind.magnitude;
+        bool    calm  = speed < 0.05f;
 
-        _speedText.text  = calm ? string.Empty : $"{speed:F1} m/s";
-        _calmsText.text  = calm ? "CALM" : string.Empty;
+        // Wind speed — convert m/s to mph (×2.237) for Wii Sports feel
+        float mph = speed * 2.237f;
+        _speedText.text = calm ? "CALM" : $"{mph:F1} mph";
 
-        // Rotate arrow so its tip points in the wind direction (XZ → screen).
-        // Atan2(x, z) gives the angle from +Z, which maps to screen-up.
+        // Arrow rotates to show wind direction
         float deg = calm ? 0f : Mathf.Atan2(wind.x, wind.z) * Mathf.Rad2Deg;
-        _arrowPivot.localEulerAngles = new Vector3(0f, 0f, -deg);
+        if (_arrowPivot != null)
+            _arrowPivot.localEulerAngles = new Vector3(0f, 0f, -deg);
+
+        // Distance text — placeholder until CupDetector/TeeDistance is hooked up
+        // Hook up: _distanceText.text = $"{Mathf.RoundToInt(distanceYds)} yds";
+        if (_distanceText != null && _distanceText.text == string.Empty)
+            _distanceText.text = "-- yds";
     }
 
     private void BuildUI()
@@ -46,92 +53,76 @@ public class WindIndicatorUI : MonoBehaviour
         canvas.sortingOrder = 19;
         canvasGO.AddComponent<CanvasScaler>();
 
-        // ── Panel (top-right) ─────────────────────────────────────────────────
+        // ── Panel (top-right, teal) ───────────────────────────────────────────
         GameObject panelGO = new GameObject("WindPanel");
         panelGO.transform.SetParent(canvasGO.transform, false);
         Image panelBg = panelGO.AddComponent<Image>();
-        panelBg.color = new Color(0f, 0f, 0f, 0.60f);
+        panelBg.color = PanelColor;
         RectTransform panelRect = panelGO.GetComponent<RectTransform>();
         panelRect.anchorMin        = new Vector2(1f, 1f);
         panelRect.anchorMax        = new Vector2(1f, 1f);
         panelRect.pivot            = new Vector2(1f, 1f);
-        panelRect.sizeDelta        = new Vector2(PanelSize, PanelSize);
-        panelRect.anchoredPosition = new Vector2(-10f, -10f);
+        panelRect.sizeDelta        = new Vector2(130f, 90f);
+        panelRect.anchoredPosition = new Vector2(-20f, -20f);
 
-        // ── "WIND" label ──────────────────────────────────────────────────────
-        AddLabel(panelGO, "WIND", 11, FontStyle.Bold, TextAnchor.MiddleCenter, Color.white,
-                 new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
-                 new Vector2(0f, 16f), new Vector2(0f, 0f));
+        // ── Distance row (top of panel) ───────────────────────────────────────
+        _distanceText = MakeText(panelGO, "DistanceText",
+            new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f),
+            new Vector2(0f, 28f), new Vector2(0f, 0f),
+            "-- yds", 16, FontStyle.Bold, TextAnchor.MiddleCenter, Color.white);
 
-        // ── Arrow pivot — sits in the middle of the panel ─────────────────────
-        // We rotate this rect; children define the arrow shape.
+        // ── Divider line ──────────────────────────────────────────────────────
+        GameObject divGO = new GameObject("Divider");
+        divGO.transform.SetParent(panelGO.transform, false);
+        Image divImg = divGO.AddComponent<Image>();
+        divImg.color = new Color(1f, 1f, 1f, 0.30f);
+        RectTransform divRect = divGO.GetComponent<RectTransform>();
+        divRect.anchorMin        = new Vector2(0.05f, 1f);
+        divRect.anchorMax        = new Vector2(0.95f, 1f);
+        divRect.pivot            = new Vector2(0.5f, 1f);
+        divRect.sizeDelta        = new Vector2(0f, 1f);
+        divRect.anchoredPosition = new Vector2(0f, -28f);
+
+        // ── Arrow pivot (center of bottom half) ──────────────────────────────
         GameObject pivotGO = new GameObject("ArrowPivot");
         pivotGO.transform.SetParent(panelGO.transform, false);
         _arrowPivot = pivotGO.GetComponent<RectTransform>();
-        _arrowPivot.anchorMin        = new Vector2(0.5f, 0.5f);
-        _arrowPivot.anchorMax        = new Vector2(0.5f, 0.5f);
+        _arrowPivot.anchorMin        = new Vector2(0.25f, 0f);
+        _arrowPivot.anchorMax        = new Vector2(0.25f, 0f);
         _arrowPivot.pivot            = new Vector2(0.5f, 0.5f);
         _arrowPivot.sizeDelta        = new Vector2(6f, 34f);
-        _arrowPivot.anchoredPosition = new Vector2(0f, -4f);
+        _arrowPivot.anchoredPosition = new Vector2(0f, 32f);
 
         // Arrow shaft
         Image shaft = pivotGO.AddComponent<Image>();
-        shaft.color = new Color(0.85f, 0.85f, 0.85f, 1f);
+        shaft.color = new Color(1f, 1f, 1f, 0.90f);
 
-        // Arrow head (tip at top of pivot — pointing in +Y direction, i.e. where wind blows)
+        // Arrowhead (yellow tip pointing up = wind direction)
         GameObject headGO = new GameObject("ArrowHead");
         headGO.transform.SetParent(pivotGO.transform, false);
         Image headImg = headGO.AddComponent<Image>();
-        headImg.color = new Color(1f, 0.85f, 0.1f, 1f);   // yellow tip
+        headImg.color = new Color(1f, 0.95f, 0.3f, 1f);
         RectTransform headRect = headGO.GetComponent<RectTransform>();
         headRect.anchorMin        = new Vector2(0.5f, 1f);
         headRect.anchorMax        = new Vector2(0.5f, 1f);
         headRect.pivot            = new Vector2(0.5f, 0f);
-        headRect.sizeDelta        = new Vector2(14f, 14f);
+        headRect.sizeDelta        = new Vector2(12f, 12f);
         headRect.anchoredPosition = Vector2.zero;
 
-        // ── Speed text ────────────────────────────────────────────────────────
-        GameObject speedGO = new GameObject("SpeedText");
-        speedGO.transform.SetParent(panelGO.transform, false);
-        _speedText           = speedGO.AddComponent<Text>();
-        _speedText.font      = GetBuiltinFont();
-        _speedText.fontSize  = 11;
-        _speedText.alignment = TextAnchor.MiddleCenter;
-        _speedText.color     = Color.white;
-        _speedText.text      = string.Empty;
-        RectTransform speedRect = speedGO.GetComponent<RectTransform>();
-        speedRect.anchorMin        = new Vector2(0f, 0f);
-        speedRect.anchorMax        = new Vector2(1f, 0f);
-        speedRect.pivot            = new Vector2(0.5f, 0f);
-        speedRect.sizeDelta        = new Vector2(0f, 16f);
-        speedRect.anchoredPosition = new Vector2(0f, 2f);
-
-        // ── "CALM" label (shown when wind is essentially zero) ────────────────
-        GameObject calmGO = new GameObject("CalmText");
-        calmGO.transform.SetParent(panelGO.transform, false);
-        _calmsText           = calmGO.AddComponent<Text>();
-        _calmsText.font      = GetBuiltinFont();
-        _calmsText.fontSize  = 11;
-        _calmsText.fontStyle = FontStyle.Italic;
-        _calmsText.alignment = TextAnchor.MiddleCenter;
-        _calmsText.color     = new Color(0.6f, 0.6f, 0.6f, 1f);
-        _calmsText.text      = string.Empty;
-        RectTransform calmRect = calmGO.GetComponent<RectTransform>();
-        calmRect.anchorMin        = new Vector2(0f, 0f);
-        calmRect.anchorMax        = new Vector2(1f, 0f);
-        calmRect.pivot            = new Vector2(0.5f, 0f);
-        calmRect.sizeDelta        = new Vector2(0f, 16f);
-        calmRect.anchoredPosition = new Vector2(0f, 2f);
+        // ── Speed text (right side of bottom half) ────────────────────────────
+        _speedText = MakeText(panelGO, "SpeedText",
+            new Vector2(0.45f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0.5f),
+            new Vector2(0f, 56f), new Vector2(0f, -6f),
+            string.Empty, 12, FontStyle.Bold, TextAnchor.MiddleCenter, Color.white);
     }
 
-    // Convenience helper for fully-stretched text rows (not used directly here,
-    // kept for symmetry; specific rows are built inline above).
-    private static void AddLabel(GameObject parent, string text, int fontSize,
-                                 FontStyle style, TextAnchor align, Color color,
-                                 Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot,
-                                 Vector2 sizeDelta, Vector2 anchoredPos)
+    private static Text MakeText(GameObject parent, string objName,
+        Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot,
+        Vector2 sizeDelta, Vector2 anchoredPos,
+        string text, int fontSize, FontStyle style,
+        TextAnchor align, Color color)
     {
-        GameObject go = new GameObject("Label_" + text);
+        GameObject go = new GameObject(objName);
         go.transform.SetParent(parent.transform, false);
         Text t = go.AddComponent<Text>();
         t.text      = text;
@@ -146,6 +137,7 @@ public class WindIndicatorUI : MonoBehaviour
         r.pivot            = pivot;
         r.sizeDelta        = sizeDelta;
         r.anchoredPosition = anchoredPos;
+        return t;
     }
 
     private static Font GetBuiltinFont()

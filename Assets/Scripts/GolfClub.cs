@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Builds the club mesh from Unity primitives at runtime.
@@ -29,7 +30,6 @@ public class GolfClub : MonoBehaviour
     private void BuildGrip()
     {
         // 0.07 radius → 0.14 diameter.  0.22 length → y scale = 0.11.
-        // Center at half the grip length below pivot.
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         go.name = "Grip";
         go.transform.SetParent(transform, false);
@@ -41,8 +41,6 @@ public class GolfClub : MonoBehaviour
 
     private void BuildShaft()
     {
-        // 0.045 radius → 0.09 diameter.  length = shaftLength → y scale = shaftLength/2.
-        // Top of shaft sits flush below grip bottom (y = -0.22).
         float halfLen = _def.shaftLength * 0.5f;
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         go.name = "Shaft";
@@ -55,8 +53,6 @@ public class GolfClub : MonoBehaviour
 
     private void BuildHead()
     {
-        // Cube default size = 1×1×1.  Scale directly to head dimensions.
-        // Center sits one half-height below the shaft bottom.
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
         go.name = "ClubHead";
         go.transform.SetParent(transform, false);
@@ -73,8 +69,13 @@ public class GolfClub : MonoBehaviour
     {
         Renderer r = go.GetComponent<Renderer>();
         if (r == null) return;
+
         // Instance material so each club part has its own color
         r.material       = new Material(Shader.Find("Standard"));
         r.material.color = color;
+
+        // No shadows — prevents odd shadow artifacts from small primitives
+        r.shadowCastingMode = ShadowCastingMode.Off;
+        r.receiveShadows    = false;
     }
 }
