@@ -33,6 +33,14 @@ public class TrajectoryPreview : MonoBehaviour
     [Tooltip("World-space Y height below which trajectory points are not drawn (prevents clipping through ground).")]
     [SerializeField] private float groundHeight = 0f;
 
+    [Header("Charge Color Gradient")]
+    [Tooltip("Line color at minimum charge.")]
+    [SerializeField] private Color colorLow  = Color.green;
+    [Tooltip("Line color at 50% charge.")]
+    [SerializeField] private Color colorMid  = Color.yellow;
+    [Tooltip("Line color at maximum charge.")]
+    [SerializeField] private Color colorHigh = Color.red;
+
     [Range(0f, 1f)]
     [Tooltip("Fallback loft used only if BallShooter is not assigned.")]
     [SerializeField] private float fallbackLoftFactor = 0.15f;
@@ -66,7 +74,25 @@ public class TrajectoryPreview : MonoBehaviour
         if (lineRenderer != null)
             lineRenderer.enabled = true;
 
+        UpdateLineColor();
         DrawTrajectory();
+    }
+
+    // Interpolates green → yellow → red as charge builds toward maxForce.
+    private void UpdateLineColor()
+    {
+        if (lineRenderer == null || ballShooter == null) return;
+
+        float t = ballShooter.maxForce > 0f
+            ? ballShooter.CurrentForce / ballShooter.maxForce
+            : 0f;
+
+        Color c = t <= 0.5f
+            ? Color.Lerp(colorLow,  colorMid,  t * 2f)
+            : Color.Lerp(colorMid, colorHigh, (t - 0.5f) * 2f);
+
+        lineRenderer.startColor = c;
+        lineRenderer.endColor   = c;
     }
 
     private void DrawTrajectory()
