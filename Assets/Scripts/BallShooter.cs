@@ -19,11 +19,26 @@ public class BallShooter : MonoBehaviour
     private float currentForce = 0f;
     private bool isCharging = false;
 
+    // Club system
+    private float _baseMaxForce = -1f;
+    private float _launchAngleOverride = 0f;
+
     /// <summary>Current charge force accumulated while holding the shot button.</summary>
     public float CurrentForce => currentForce;
 
     /// <summary>True while the player is holding the shot button to charge power.</summary>
     public bool IsCharging => isCharging;
+
+    /// <summary>Launch angle in degrees set by the active club. 0 falls back to loftFactor.</summary>
+    public float LaunchAngleOverride => _launchAngleOverride;
+
+    /// <summary>Called by ClubBootstrapper / ClubSelectorUI when the club changes.</summary>
+    public void OnClubChanged(ClubDefinition def)
+    {
+        if (_baseMaxForce < 0f) _baseMaxForce = maxForce;
+        maxForce = _baseMaxForce * def.maxForceMultiplier;
+        _launchAngleOverride = def.launchAngleDegrees;
+    }
 
     void Start()
     {
@@ -63,13 +78,20 @@ public class BallShooter : MonoBehaviour
 
     void Shoot()
     {
-        // Forward impulse still uses the charged power.
-        Vector3 forwardImpulse = transform.forward * currentForce;
+        Vector3 impulse;
 
-        // Add a small upward impulse for a golf-like arc.
-        Vector3 upwardImpulse = Vector3.up * (currentForce * loftFactor);
+        if (_launchAngleOverride > 0f)
+        {
+            // Rotate forward vector upward by the club's launch angle.
+            Vector3 launchDir = Quaternion.AngleAxis(_launchAngleOverride, transform.right) * transform.forward;
+            impulse = launchDir * currentForce;
+        }
+        else
+        {
+            // Fallback: original loftFactor-based arc.
+            impulse = transform.forward * currentForce + Vector3.up * (currentForce * loftFactor);
+        }
 
-        // Combine both so the ball launches forward and upward.
-        rb.AddForce(forwardImpulse + upwardImpulse, ForceMode.Impulse);
+        rb.AddForce(impulse, ForceMode.Impulse);
     }
 }

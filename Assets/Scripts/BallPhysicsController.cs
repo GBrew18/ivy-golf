@@ -14,6 +14,16 @@ public class BallPhysicsController : MonoBehaviour
     private Rigidbody _rb;
     private Collider _col;
     private bool _hasLanded;
+    private float _rollingDragMultiplier = 1f;
+
+    /// <summary>Set by ClubSelectorUI to scale rolling drag per club.</summary>
+    public void SetRollingDragMultiplier(float multiplier)
+    {
+        _rollingDragMultiplier = multiplier;
+        // Re-apply immediately if the ball is currently rolling.
+        if (GameStateManager.Instance?.CurrentState == GameStateManager.GameState.Landed && _hasLanded)
+            ApplyRollingDrag();
+    }
 
     private void Awake()
     {
@@ -146,7 +156,7 @@ public class BallPhysicsController : MonoBehaviour
 
     private void ApplyRollingDrag()
     {
-        _rb.linearDamping  = profile.rollingLinearDrag;
+        _rb.linearDamping  = profile.rollingLinearDrag * _rollingDragMultiplier;
         _rb.angularDamping = profile.rollingAngularDrag;
     }
 }
