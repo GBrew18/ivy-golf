@@ -74,12 +74,22 @@ public class BallPhysicsController : MonoBehaviour
         if (GameStateManager.Instance?.CurrentState != GameStateManager.GameState.InFlight) return;
 
         _hasLanded = true;
+        Debug.Log("[BallPhysics] First ground contact");
 
         // Kill the bounce — this is the core Wii Sports landing feel.
         _rb.linearVelocity *= profile.landingVelocityDamping;
         _rb.angularVelocity *= profile.landingVelocityDamping;
 
         ApplyRollingDrag();
+
+        // Override with high damping to stop rolling fast.
+        _rb.linearDamping  = 12f;
+        _rb.angularDamping = 20f;
+
+        // Force near-zero bounciness if the material is too bouncy.
+        if (_col.material.bounciness > 0.03f)
+            _col.material.bounciness = 0.02f;
+
         GameStateManager.Instance.SetState(GameStateManager.GameState.Landed);
     }
 
@@ -88,7 +98,11 @@ public class BallPhysicsController : MonoBehaviour
         if (GameStateManager.Instance?.CurrentState != GameStateManager.GameState.Landed) return;
         if (!_hasLanded) return;
 
-        // Snap to stopped once rolling speed is negligible.
+        // Aggressively kill linear velocity at low speed to prevent endless rolling.
+        if (_rb.linearVelocity.magnitude < 0.8f)
+            _rb.linearVelocity = Vector3.zero;
+
+        // Snap to fully stopped once rolling speed is negligible.
         if (_rb.linearVelocity.magnitude < profile.settleSpeedThreshold &&
             _rb.angularVelocity.magnitude < profile.settleSpeedThreshold)
         {

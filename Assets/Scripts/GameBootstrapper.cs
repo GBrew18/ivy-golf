@@ -57,6 +57,8 @@ public class GameBootstrapRunner : MonoBehaviour
         GameObject clubGO = new GameObject("GolfClub");
         GolfClub golfClub = clubGO.AddComponent<GolfClub>();
         golfClub.Build(clubs[0]);
+        clubGO.transform.SetParent(shooter.transform, false);
+        clubGO.transform.localPosition = new Vector3(0.06f, 0f, 0f);
         DontDestroyOnLoad(clubGO);
 
         shooter.OnClubChanged(clubs[0]);
