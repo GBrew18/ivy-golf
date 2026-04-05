@@ -27,7 +27,32 @@ public static class HoleBootstrapper
         builder.buildOnStart = false; // call BuildHole() right now
         builder.BuildHole();
 
-        // ── Reposition ball to tee ────────────────────────────────────────────
+        // ── Golf ball at tee ──────────────────────────────────────────────────
+        // TeeBallPosition = (0, 2.15, 0) — TeeElevation(2) + 0.15 surface offset.
+        Vector3 teePosition = builder.TeeBallPosition;
+
+        GameObject ballGO = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        ballGO.name = "GolfBall";
+        ballGO.transform.position = teePosition + Vector3.up * 0.022f;
+        ballGO.transform.localScale = Vector3.one * 0.043f;
+        ballGO.GetComponent<Renderer>().material.color = Color.white;
+
+        // Physics
+        var rb = ballGO.AddComponent<Rigidbody>();
+        rb.mass = 0.046f;
+        rb.linearDamping = 0.05f;
+        rb.angularDamping = 0.05f;
+        var col = ballGO.GetComponent<SphereCollider>();
+        col.material = CreateBallPhysicsMaterial();
+
+        // BallShooter drives input + launch; BallPhysicsController handles spin/roll.
+        // AimController must be on the ball itself so rotating it affects
+        // BallShooter.Shoot()'s transform.forward direction.
+        ballGO.AddComponent<BallShooter>();
+        ballGO.AddComponent<BallPhysicsController>();
+        ballGO.AddComponent<AimController>();
+
+        // ── Reposition ResetShot if one already exists in the scene ──────────
         ResetShot resetShot = Object.FindFirstObjectByType<ResetShot>();
         if (resetShot != null)
         {
@@ -40,5 +65,17 @@ public static class HoleBootstrapper
 
         // ── TeeBox flyover camera ─────────────────────────────────────────────
         new GameObject("TeeBoxCamera").AddComponent<TeeBoxCamera>();
+    }
+
+    private static PhysicsMaterial CreateBallPhysicsMaterial()
+    {
+        return new PhysicsMaterial("BallBootstrapMat")
+        {
+            bounciness      = 0.02f,
+            dynamicFriction = 0.8f,
+            staticFriction  = 0.8f,
+            bounceCombine   = PhysicsMaterialCombine.Minimum,
+            frictionCombine = PhysicsMaterialCombine.Maximum,
+        };
     }
 }
