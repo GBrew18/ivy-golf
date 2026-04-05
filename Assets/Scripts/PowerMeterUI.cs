@@ -138,6 +138,7 @@ public class PowerMeterUI : MonoBehaviour
         _hiddenY = -(containerH + 20f);
 
         GameObject containerGO = new GameObject("PowerMeter_Container");
+        containerGO.AddComponent<RectTransform>();
         containerGO.transform.SetParent(canvasGO.transform, false);
         _container = containerGO.GetComponent<RectTransform>();
         _container.anchorMin        = new Vector2(0.5f, 0f);

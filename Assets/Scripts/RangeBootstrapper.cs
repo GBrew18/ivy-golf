@@ -19,9 +19,6 @@ public static class RangeBootstrapper
         // Don't double-build if a RangeBuilder was placed manually in the scene.
         if (Object.FindFirstObjectByType<RangeBuilder>() != null) return;
 
-        // Skip if a ball already exists (e.g. BallPhysicsBootstrapper already ran).
-        if (Object.FindFirstObjectByType<BallShooter>() != null) return;
-
         // ── RangeBuilder ──────────────────────────────────────────────────────
         GameObject rangeGO = new GameObject("RangeBuilder");
         RangeBuilder rangeBuilder = rangeGO.AddComponent<RangeBuilder>();
