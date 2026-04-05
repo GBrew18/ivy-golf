@@ -1,131 +1,156 @@
-using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Wii Sports-style club selector — a clean horizontal pill at the bottom-left.
-/// Shows the current club name in white (selected in yellow/gold).
-/// Q = cycle left, E = cycle right (Aiming state only).
-/// Fires OnClubChanged(ClubDefinition) when the selection changes.
+/// Bottom-left pill that displays the currently equipped club name.
+/// Slides in during Aiming and Charging, slides out otherwise.
+/// Auto-instantiated by <see cref="ClubSelectorBootstrapper"/> — no scene
+/// setup required.
 /// </summary>
 public class ClubSelectorUI : MonoBehaviour
 {
-    public event Action<ClubDefinition> OnClubChanged;
+    // ── Layout ────────────────────────────────────────────────────────────────
+    private const float PillW        = 150f;
+    private const float PillH        = 40f;
+    private const float BottomMargin = 24f;
+    private const float LeftMargin   = 24f;
+    private const float SlideSpeed   = 10f;
 
-    private ClubDefinition[] _clubs;
-    private int _index;
+    private static readonly Color GoldColor = new Color(1f, 0.82f, 0.10f, 1f);
 
-    private Text _centerText;
+    // ── Runtime state ─────────────────────────────────────────────────────────
+    private RectTransform _pillRect;
+    private Text          _clubText;
 
-    public ClubDefinition CurrentClub => _clubs[_index];
+    private float _shownX, _hiddenX, _targetX;
 
-    public void Init(ClubDefinition[] clubs)
+    // Hardcoded to Driver for now — swap when a club-selection system exists.
+    private const string ClubName = "DRIVER";
+
+    // ── Unity lifecycle ───────────────────────────────────────────────────────
+    private void Awake()
     {
-        _clubs = clubs;
-        _index = 0;
         BuildUI();
-        RefreshLabels();
     }
 
-    private void BuildUI()
+    private void Start()
     {
-        // Canvas
-        Canvas canvas = gameObject.AddComponent<Canvas>();
-        canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 18;
-        gameObject.AddComponent<CanvasScaler>();
-        gameObject.AddComponent<GraphicRaycaster>();
+        // Start hidden; the Aiming state broadcast will slide it in.
+        _targetX = _hiddenX;
+        _pillRect.anchoredPosition = new Vector2(_hiddenX, BottomMargin);
 
-        // Wii Sports-style: clean horizontal pill at bottom-left
-        // Dark semi-transparent background, club name in white/gold
-        GameObject panel = new GameObject("ClubPanel");
-        panel.transform.SetParent(canvas.transform, false);
-        Image bg = panel.AddComponent<Image>();
-        bg.color = new Color(0f, 0f, 0f, 0.60f);
-        RectTransform panelRT = panel.GetComponent<RectTransform>();
-        panelRT.anchorMin        = new Vector2(0f, 0f);
-        panelRT.anchorMax        = new Vector2(0f, 0f);
-        panelRT.pivot            = new Vector2(0f, 0f);
-        panelRT.sizeDelta        = new Vector2(160f, 36f);
-        panelRT.anchoredPosition = new Vector2(20f, 20f);
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnStateChanged += OnStateChanged;
 
-        // Club icon placeholder (small circle on the left)
-        GameObject iconGO = new GameObject("ClubIcon");
-        iconGO.transform.SetParent(panel.transform, false);
-        Image iconImg = iconGO.AddComponent<Image>();
-        iconImg.color = new Color(0.7f, 0.7f, 0.7f, 0.5f);
-        RectTransform iconRT = iconGO.GetComponent<RectTransform>();
-        iconRT.anchorMin        = new Vector2(0f, 0.5f);
-        iconRT.anchorMax        = new Vector2(0f, 0.5f);
-        iconRT.pivot            = new Vector2(0f, 0.5f);
-        iconRT.sizeDelta        = new Vector2(22f, 22f);
-        iconRT.anchoredPosition = new Vector2(7f, 0f);
+        // If we boot mid-game into Aiming, show immediately.
+        if (GameStateManager.Instance != null &&
+            (GameStateManager.Instance.CurrentState == GameStateManager.GameState.Aiming ||
+             GameStateManager.Instance.CurrentState == GameStateManager.GameState.Charging))
+            _targetX = _shownX;
+    }
 
-        // Club name text — yellow/gold for the selected club
-        GameObject nameGO = new GameObject("ClubName");
-        nameGO.transform.SetParent(panel.transform, false);
-        _centerText            = nameGO.AddComponent<Text>();
-        _centerText.font       = GetBuiltinFont();
-        _centerText.fontSize   = 15;
-        _centerText.fontStyle  = FontStyle.Bold;
-        _centerText.alignment  = TextAnchor.MiddleLeft;
-        _centerText.color      = new Color(1f, 0.85f, 0.20f, 1f);  // gold/yellow
-        RectTransform nameRT = nameGO.GetComponent<RectTransform>();
-        nameRT.anchorMin        = new Vector2(0f, 0f);
-        nameRT.anchorMax        = new Vector2(1f, 1f);
-        nameRT.offsetMin        = new Vector2(36f, 0f);  // leave room for icon
-        nameRT.offsetMax        = new Vector2(-6f, 0f);
-
-        // Subtle Q/E hint in the corner
-        GameObject hintGO = new GameObject("QEHint");
-        hintGO.transform.SetParent(panel.transform, false);
-        Text hintText = hintGO.AddComponent<Text>();
-        hintText.text      = "Q / E";
-        hintText.font      = GetBuiltinFont();
-        hintText.fontSize  = 8;
-        hintText.alignment = TextAnchor.MiddleRight;
-        hintText.color     = new Color(0.5f, 0.5f, 0.5f, 1f);
-        RectTransform hintRT = hintGO.GetComponent<RectTransform>();
-        hintRT.anchorMin        = new Vector2(0f, 0f);
-        hintRT.anchorMax        = new Vector2(1f, 0f);
-        hintRT.pivot            = new Vector2(1f, 0f);
-        hintRT.sizeDelta        = new Vector2(0f, 10f);
-        hintRT.anchoredPosition = new Vector2(-4f, -1f);
+    private void OnDestroy()
+    {
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.OnStateChanged -= OnStateChanged;
     }
 
     private void Update()
     {
-        // Only accept input while aiming
-        if (GameStateManager.Instance?.CurrentState != GameStateManager.GameState.Aiming) return;
-
-        if (Input.GetKeyDown(KeyCode.Q))
-            CycleLeft();
-        else if (Input.GetKeyDown(KeyCode.E))
-            CycleRight();
+        Vector2 pos = _pillRect.anchoredPosition;
+        pos.x = Mathf.Lerp(pos.x, _targetX, Time.deltaTime * SlideSpeed);
+        _pillRect.anchoredPosition = pos;
     }
 
-    private void CycleLeft()
+    // ── State listener ────────────────────────────────────────────────────────
+    private void OnStateChanged(GameStateManager.GameState state)
     {
-        _index = (_index - 1 + _clubs.Length) % _clubs.Length;
-        RefreshLabels();
-        var def = _clubs[_index];
-        Debug.Log($"Club changed to: {def.clubName}");
-        OnClubChanged?.Invoke(def);
+        bool show = state == GameStateManager.GameState.Aiming ||
+                    state == GameStateManager.GameState.Charging;
+        _targetX = show ? _shownX : _hiddenX;
     }
 
-    private void CycleRight()
+    // ── UI construction ───────────────────────────────────────────────────────
+    private void BuildUI()
     {
-        _index = (_index + 1) % _clubs.Length;
-        RefreshLabels();
-        var def = _clubs[_index];
-        Debug.Log($"Club changed to: {def.clubName}");
-        OnClubChanged?.Invoke(def);
+        _shownX  = LeftMargin + PillW * 0.5f;
+        _hiddenX = -(PillW + 20f);
+
+        // Canvas
+        GameObject canvasGO = new GameObject("ClubSelectorCanvas");
+        Canvas canvas = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 18;
+        canvasGO.AddComponent<CanvasScaler>();
+
+        // Dark pill background — anchored bottom-left, slides in on X.
+        GameObject pillGO = new GameObject("ClubPill");
+        pillGO.transform.SetParent(canvasGO.transform, false);
+        Image bg = pillGO.AddComponent<Image>();
+        bg.color = new Color(0.05f, 0.05f, 0.05f, 0.85f);
+
+        _pillRect = pillGO.GetComponent<RectTransform>();
+        _pillRect.anchorMin        = new Vector2(0f, 0f);
+        _pillRect.anchorMax        = new Vector2(0f, 0f);
+        _pillRect.pivot            = new Vector2(0.5f, 0f);
+        _pillRect.sizeDelta        = new Vector2(PillW, PillH);
+        _pillRect.anchoredPosition = new Vector2(_hiddenX, BottomMargin);
+
+        // Gold accent bar along the top edge of the pill.
+        GameObject goldGO = new GameObject("GoldAccent");
+        goldGO.transform.SetParent(pillGO.transform, false);
+        Image goldBar = goldGO.AddComponent<Image>();
+        goldBar.color = GoldColor;
+        RectTransform goldRect = goldGO.GetComponent<RectTransform>();
+        goldRect.anchorMin        = new Vector2(0f, 1f);
+        goldRect.anchorMax        = new Vector2(1f, 1f);
+        goldRect.pivot            = new Vector2(0.5f, 1f);
+        goldRect.sizeDelta        = new Vector2(0f, 3f);
+        goldRect.anchoredPosition = Vector2.zero;
+
+        // Small "CLUB" label (grey, small) above the club name.
+        AddLabel(pillGO, "Label_CLUB", "CLUB", 9, FontStyle.Normal,
+                 new Color(0.60f, 0.60f, 0.60f, 1f), TextAnchor.MiddleCenter,
+                 new Vector2(0f, 0.58f), new Vector2(1f, 1f),
+                 new Vector2(0f, 0f), new Vector2(0f, 0f));
+
+        // Club name — large gold bold text.
+        GameObject nameGO = new GameObject("ClubNameText");
+        nameGO.transform.SetParent(pillGO.transform, false);
+        _clubText           = nameGO.AddComponent<Text>();
+        _clubText.text      = ClubName;
+        _clubText.font      = GetBuiltinFont();
+        _clubText.fontSize  = 17;
+        _clubText.fontStyle = FontStyle.Bold;
+        _clubText.alignment = TextAnchor.MiddleCenter;
+        _clubText.color     = GoldColor;
+        RectTransform nameRect = nameGO.GetComponent<RectTransform>();
+        nameRect.anchorMin = new Vector2(0f, 0f);
+        nameRect.anchorMax = new Vector2(1f, 0.62f);
+        nameRect.offsetMin = new Vector2(4f, 2f);
+        nameRect.offsetMax = new Vector2(-4f, 0f);
     }
 
-    private void RefreshLabels()
+    private static void AddLabel(GameObject parent, string goName, string text,
+                                 int fontSize, FontStyle style, Color color,
+                                 TextAnchor align,
+                                 Vector2 anchorMin, Vector2 anchorMax,
+                                 Vector2 offsetMin, Vector2 offsetMax)
     {
-        if (_centerText != null)
-            _centerText.text = _clubs[_index].clubName;
+        GameObject go = new GameObject(goName);
+        go.transform.SetParent(parent.transform, false);
+        Text t = go.AddComponent<Text>();
+        t.text      = text;
+        t.font      = GetBuiltinFont();
+        t.fontSize  = fontSize;
+        t.fontStyle = style;
+        t.alignment = align;
+        t.color     = color;
+        RectTransform r = go.GetComponent<RectTransform>();
+        r.anchorMin = anchorMin;
+        r.anchorMax = anchorMax;
+        r.offsetMin = offsetMin;
+        r.offsetMax = offsetMax;
     }
 
     private static Font GetBuiltinFont()
@@ -133,5 +158,22 @@ public class ClubSelectorUI : MonoBehaviour
         Font f = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (f == null) f = Resources.GetBuiltinResource<Font>("Arial.ttf");
         return f;
+    }
+}
+
+/// <summary>
+/// Auto-instantiates <see cref="ClubSelectorUI"/> after each scene finishes loading.
+/// </summary>
+public static class ClubSelectorBootstrapper
+{
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void Bootstrap()
+    {
+        // Only needed in scenes that contain a ball.
+        if (Object.FindObjectOfType<BallShooter>() == null) return;
+
+        GameObject go = new GameObject("ClubSelectorUI");
+        go.AddComponent<ClubSelectorUI>();
+        Object.DontDestroyOnLoad(go);
     }
 }
