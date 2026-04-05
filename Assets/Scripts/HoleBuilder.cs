@@ -227,7 +227,7 @@ public class HoleBuilder : MonoBehaviour
 
     private static void SafeTag(GameObject go, string tag)
     {
-        try { go.tag = tag; }
-        catch (UnityException) { /* tag not registered — harmless */ }
+        // Tags must be pre-registered in Unity's Tag Manager; assigning an
+        // unregistered tag throws at runtime. Gameplay does not depend on tags.
     }
 }
