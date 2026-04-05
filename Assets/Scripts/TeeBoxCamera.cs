@@ -16,8 +16,8 @@ public class TeeBoxCamera : MonoBehaviour
         Camera cam = Camera.main;
         if (cam == null) return;
 
-        FollowCamera followCam = Object.FindObjectOfType<FollowCamera>();
-        HoleBuilder  builder   = Object.FindObjectOfType<HoleBuilder>();
+        FollowCamera followCam = Object.FindFirstObjectByType<FollowCamera>();
+        HoleBuilder  builder   = Object.FindFirstObjectByType<HoleBuilder>();
 
         StartCoroutine(Flyover(cam, followCam, builder));
     }

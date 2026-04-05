@@ -9,7 +9,7 @@ public static class BallPhysicsBootstrapper
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
-        BallShooter shooter = Object.FindObjectOfType<BallShooter>();
+        BallShooter shooter = Object.FindFirstObjectByType<BallShooter>();
         if (shooter == null) return;
 
         // Skip if already attached (e.g. placed manually in the scene).

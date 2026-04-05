@@ -27,7 +27,7 @@ public class HoleScorecard : MonoBehaviour
 
     private void Start()
     {
-        _holeBuilder = Object.FindObjectOfType<HoleBuilder>();
+        _holeBuilder = Object.FindFirstObjectByType<HoleBuilder>();
         BuildUI();
 
         if (GameStateManager.Instance != null)
