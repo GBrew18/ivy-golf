@@ -53,7 +53,7 @@ public class TrajectoryPreview : MonoBehaviour
             ballRigidbody = ballShooter.GetComponent<Rigidbody>();
 
         // Cache aim controller so we use the correct forward direction
-        _aimController = FindObjectOfType<AimController>();
+        _aimController = FindFirstObjectByType<AimController>();
 
         SetupLineRenderer();
     }

@@ -29,7 +29,7 @@ public class PowerMeterBootstrapRunner : MonoBehaviour
         // Wait one frame — ensures BallShooter has fully awakened
         yield return null;
 
-        BallShooter shooter = FindObjectOfType<BallShooter>();
+        BallShooter shooter = FindFirstObjectByType<BallShooter>();
         if (shooter == null)
         {
             Destroy(gameObject);

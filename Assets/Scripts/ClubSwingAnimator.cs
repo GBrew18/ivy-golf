@@ -34,7 +34,7 @@ public class ClubSwingAnimator : MonoBehaviour
         _def     = def;
 
         // Cache the aim pivot so we can read its right vector for positioning
-        AimController ac = FindObjectOfType<AimController>();
+        AimController ac = FindFirstObjectByType<AimController>();
         _aimPivot = ac != null ? ac.transform : null;
     }
 

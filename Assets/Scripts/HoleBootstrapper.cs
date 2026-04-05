@@ -19,7 +19,7 @@ public static class HoleBootstrapper
         if (SceneManager.GetActiveScene().name != "Hole1") return;
 
         // Don't double-build if HoleBuilder already exists (e.g. placed manually).
-        if (Object.FindObjectOfType<HoleBuilder>() != null) return;
+        if (Object.FindFirstObjectByType<HoleBuilder>() != null) return;
 
         // ── HoleBuilder ───────────────────────────────────────────────────────
         GameObject holeGO = new GameObject("Hole1Builder");
@@ -28,7 +28,7 @@ public static class HoleBootstrapper
         builder.BuildHole();
 
         // ── Reposition ball to tee ────────────────────────────────────────────
-        ResetShot resetShot = Object.FindObjectOfType<ResetShot>();
+        ResetShot resetShot = Object.FindFirstObjectByType<ResetShot>();
         if (resetShot != null)
         {
             resetShot.SetStartPosition(builder.TeeBallPosition);

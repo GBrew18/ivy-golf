@@ -9,7 +9,7 @@ public static class ClubBootstrapper
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
-        BallShooter shooter = Object.FindObjectOfType<BallShooter>();
+        BallShooter shooter = Object.FindFirstObjectByType<BallShooter>();
         if (shooter == null) return;
 
         ClubDefinition[] clubs = ClubBag.GetFullBag();
