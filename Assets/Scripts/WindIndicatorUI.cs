@@ -67,7 +67,8 @@ public class WindIndicatorUI : MonoBehaviour
         // We rotate this rect; children define the arrow shape.
         GameObject pivotGO = new GameObject("ArrowPivot");
         pivotGO.transform.SetParent(panelGO.transform, false);
-        _arrowPivot = pivotGO.GetComponent<RectTransform>();
+        // Plain GameObjects don't have a RectTransform — add one explicitly.
+        _arrowPivot = pivotGO.AddComponent<RectTransform>();
         _arrowPivot.anchorMin        = new Vector2(0.5f, 0.5f);
         _arrowPivot.anchorMax        = new Vector2(0.5f, 0.5f);
         _arrowPivot.pivot            = new Vector2(0.5f, 0.5f);
