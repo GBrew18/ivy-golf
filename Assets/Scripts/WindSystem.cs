@@ -71,7 +71,7 @@ public class WindSystem : MonoBehaviour
 
     private void CacheBall()
     {
-        BallShooter shooter = FindObjectOfType<BallShooter>();
+        BallShooter shooter = FindFirstObjectByType<BallShooter>();
         _ballRb = shooter != null ? shooter.GetComponent<Rigidbody>() : null;
     }
 }

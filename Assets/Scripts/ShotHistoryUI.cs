@@ -175,7 +175,7 @@ public static class ShotHistoryBootstrapper
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
-        BallShooter shooter = Object.FindObjectOfType<BallShooter>();
+        BallShooter shooter = Object.FindFirstObjectByType<BallShooter>();
         if (shooter == null) return;
 
         GameObject go = new GameObject("ShotHistoryUI");

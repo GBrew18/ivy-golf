@@ -170,7 +170,7 @@ public static class ClubSelectorBootstrapper
     private static void Bootstrap()
     {
         // Only needed in scenes that contain a ball.
-        if (Object.FindObjectOfType<BallShooter>() == null) return;
+        if (Object.FindFirstObjectByType<BallShooter>() == null) return;
 
         GameObject go = new GameObject("ClubSelectorUI");
         go.AddComponent<ClubSelectorUI>();
