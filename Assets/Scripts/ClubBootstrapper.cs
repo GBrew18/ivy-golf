@@ -16,11 +16,12 @@ public static class ClubBootstrapper
 
         ClubDefinition[] clubs = ClubBag.GetFullBag();
 
-        // GolfClub visual
+        // GolfClub visual — parented to the shooter so it moves/rotates with the ball
+        // and ClubSwingAnimator can animate it via the parent transform.
         GameObject clubGO  = new GameObject("GolfClub");
+        clubGO.transform.SetParent(shooter.transform, false);
         GolfClub golfClub  = clubGO.AddComponent<GolfClub>();
         golfClub.Build(clubs[0]);
-        Object.DontDestroyOnLoad(clubGO);
 
         // Apply Driver defaults immediately
         shooter.OnClubChanged(clubs[0]);

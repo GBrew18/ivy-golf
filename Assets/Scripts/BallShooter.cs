@@ -4,9 +4,9 @@ using UnityEngine;
 public class BallShooter : MonoBehaviour
 {
     [Header("Power")]
-    // maxForce=25 + loftFactor=0.75 → ~37° launch angle, ~95 units at full power on flat ground.
-    // Matches Wii Sports Golf: nice high arc, good hang time, lands satisfyingly.
-    public float maxForce = 25f;
+    // maxForce=18: full-power Driver shot feels powerful but not rocket-like.
+    // Matches Wii Sports Golf: satisfying arc, moderate speed, good hang time.
+    public float maxForce = 18f;
     public float chargeSpeed = 15f;
 
     [Header("Launch Arc")]

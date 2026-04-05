@@ -21,7 +21,7 @@ public class FollowCamera : MonoBehaviour
 
     [Tooltip("Approximate time (seconds) for the camera to reach the target position.")]
     [Min(0.01f)]
-    [SerializeField] private float smoothTime = 0.2f;
+    [SerializeField] private float smoothTime = 0.5f;
 
     [Header("Velocity Trailing")]
     [Tooltip("How strongly the follow offset rotates toward the ball's travel direction during flight (0 = fixed offset, 1 = full trail).")]

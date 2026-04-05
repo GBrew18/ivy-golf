@@ -10,24 +10,24 @@ public class BallPhysicsProfile : ScriptableObject
 {
     [Header("Bounce & Friction")]
     [Tooltip("Almost no bounce — ball thunks into the ground and sticks.")]
-    public float bounciness = 0.05f;
+    public float bounciness = 0.02f;
     public float dynamicFriction = 0.8f;
     public float staticFriction = 0.9f;
 
     [Header("Landing")]
     [Tooltip("Multiply velocity by this on first ground contact (kills the bounce).")]
     [Range(0f, 1f)]
-    public float landingVelocityDamping = 0.35f;
+    public float landingVelocityDamping = 0.18f;
 
     [Header("Rolling Drag")]
     [Tooltip("High linear drag once ball is rolling — stops quickly.")]
-    public float rollingLinearDrag = 4.0f;
+    public float rollingLinearDrag = 7.0f;
     [Tooltip("High angular drag once ball is rolling — no spin-out.")]
     public float rollingAngularDrag = 8.0f;
 
     [Header("In-Flight Drag")]
     [Tooltip("Low drag while airborne — clean arc.")]
-    public float inFlightLinearDrag = 0.05f;
+    public float inFlightLinearDrag = 0.12f;
     public float inFlightAngularDrag = 0.1f;
 
     [Header("Settle")]

@@ -63,7 +63,7 @@ public static class ClubBag
             },
             new ClubDefinition {
                 clubName = "3-Iron",  clubType = ClubType.Iron,
-                maxForceMultiplier = 0.74f, launchAngleDegrees =  15f,
+                maxForceMultiplier = 0.74f, launchAngleDegrees =  20f,
                 maxBackswingDegrees =  -98f, rollingDragMultiplier = 0.85f,
                 shaftLength = 1.00f,
                 // Irons: thin blade
@@ -96,7 +96,7 @@ public static class ClubBag
             },
             new ClubDefinition {
                 clubName = "Wedge",   clubType = ClubType.Wedge,
-                maxForceMultiplier = 0.44f, launchAngleDegrees =  34f,
+                maxForceMultiplier = 0.44f, launchAngleDegrees =  38f,
                 maxBackswingDegrees =  -75f, rollingDragMultiplier = 1.60f,
                 shaftLength = 0.82f,
                 headWidth = 0.10f, headHeight = 0.07f, headDepth = 0.05f,

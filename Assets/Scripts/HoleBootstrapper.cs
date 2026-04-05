@@ -28,9 +28,13 @@ public static class HoleBootstrapper
         builder.BuildHole();
 
         // ── Reposition ball to tee ────────────────────────────────────────────
+        // NOTE: Bootstrap() runs before Start() (AfterSceneLoad order).
+        // ResetShot.Start() would overwrite startPosition with transform.position,
+        // so we set transform.position here first so Start() captures the tee pos.
         ResetShot resetShot = Object.FindFirstObjectByType<ResetShot>();
         if (resetShot != null)
         {
+            resetShot.transform.position = builder.TeeBallPosition;
             resetShot.SetStartPosition(builder.TeeBallPosition);
             resetShot.ResetBallToStart();
         }
