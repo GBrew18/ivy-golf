@@ -16,6 +16,8 @@ public static class RangeBootstrapper
         // Only run outside the Hole1 scene — that scene is owned by HoleBootstrapper.
         if (SceneManager.GetActiveScene().name == "Hole1") return;
 
+        Debug.Log($"[RangeBootstrapper] Running in scene: {SceneManager.GetActiveScene().name}");
+
         // Don't double-build if a RangeBuilder was placed manually in the scene.
         if (Object.FindFirstObjectByType<RangeBuilder>() != null) return;
 
@@ -58,6 +60,7 @@ public static class RangeBootstrapper
         ballGO.AddComponent<BallShooter>();
         ballGO.AddComponent<BallPhysicsController>();
         ballGO.AddComponent<AimController>();
+        Debug.Log("[RangeBootstrapper] Ball spawned at " + ballGO.transform.position);
     }
 
     private static PhysicsMaterial CreateBallPhysicsMaterial()

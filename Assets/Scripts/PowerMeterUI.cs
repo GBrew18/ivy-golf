@@ -38,7 +38,11 @@ public class PowerMeterUI : MonoBehaviour
 
     // ── Public init ──────────────────────────────────────────────────────────
     /// <summary>Wire up the BallShooter after instantiation.</summary>
-    public void Init(BallShooter shooter) => _shooter = shooter;
+    public void Init(BallShooter shooter)
+    {
+        Debug.Log("[PowerMeterUI] Init called, shooter=" + (shooter != null ? shooter.name : "NULL"));
+        _shooter = shooter;
+    }
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
     private void Awake()
@@ -125,6 +129,7 @@ public class PowerMeterUI : MonoBehaviour
     // ── UI construction ───────────────────────────────────────────────────────
     private void BuildUI()
     {
+        Debug.Log("[PowerMeterUI] BuildUI called");
         // Canvas
         GameObject canvasGO = new GameObject("PowerMeterCanvas");
         Canvas canvas = canvasGO.AddComponent<Canvas>();

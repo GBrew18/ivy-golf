@@ -57,6 +57,13 @@ public class GameBootstrapRunner : MonoBehaviour
         GameObject clubGO = new GameObject("GolfClub");
         GolfClub golfClub = clubGO.AddComponent<GolfClub>();
         golfClub.Build(clubs[0]);
+
+        // Position next to ball and follow it — do NOT parent to ball (ball scale
+        // is 0.043 and would multiply all club child scales, making it invisible).
+        clubGO.transform.position = shooter.transform.position + shooter.transform.right * 0.4f;
+        var follower = clubGO.AddComponent<ClubFollower>();
+        follower.target = shooter.transform;
+
         DontDestroyOnLoad(clubGO);
 
         shooter.OnClubChanged(clubs[0]);
