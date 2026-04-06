@@ -29,24 +29,22 @@ public class GolfClub : MonoBehaviour
 
     private void BuildGrip()
     {
-        // 0.07 radius → 0.14 diameter.  0.22 length → y scale = 0.11.
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         go.name = "Grip";
         go.transform.SetParent(transform, false);
-        go.transform.localScale    = new Vector3(0.14f, 0.11f, 0.14f);
-        go.transform.localPosition = new Vector3(0f, -0.11f, 0f);
+        go.transform.localScale    = new Vector3(0.008f, 0.06f, 0.008f);
+        go.transform.localPosition = new Vector3(0f, 0.07f, 0f);
         SetColor(go, _def.gripColor);
         DestroyImmediate(go.GetComponent<Collider>());
     }
 
     private void BuildShaft()
     {
-        float halfLen = _def.shaftLength * 0.5f;
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         go.name = "Shaft";
         go.transform.SetParent(transform, false);
-        go.transform.localScale    = new Vector3(0.09f, halfLen, 0.09f);
-        go.transform.localPosition = new Vector3(0f, -0.22f - halfLen, 0f);
+        go.transform.localScale    = new Vector3(0.005f, 0.38f, 0.005f);
+        go.transform.localPosition = new Vector3(0f, -0.31f, 0f);
         SetColor(go, _def.shaftColor);
         DestroyImmediate(go.GetComponent<Collider>());
     }
@@ -56,11 +54,8 @@ public class GolfClub : MonoBehaviour
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
         go.name = "ClubHead";
         go.transform.SetParent(transform, false);
-        go.transform.localScale    = new Vector3(_def.headWidth, _def.headHeight, _def.headDepth);
-        go.transform.localPosition = new Vector3(
-            0f,
-            -0.22f - _def.shaftLength - _def.headHeight * 0.5f,
-            0f);
+        go.transform.localScale    = new Vector3(0.04f, 0.018f, 0.022f);
+        go.transform.localPosition = new Vector3(0f, -0.70f, 0f);
         SetColor(go, _def.headColor);
         DestroyImmediate(go.GetComponent<Collider>());
     }

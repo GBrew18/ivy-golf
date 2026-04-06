@@ -82,8 +82,10 @@ public class BallShooter : MonoBehaviour
 
         if (_launchAngleOverride > 0f)
         {
-            // Rotate forward vector upward by the club's launch angle.
-            Vector3 launchDir = Quaternion.AngleAxis(_launchAngleOverride, transform.right) * transform.forward;
+            // Use horizontal right so loft is always upward regardless of ball tilt.
+            Vector3 aimForward = transform.forward;
+            Vector3 aimRight   = Vector3.Cross(Vector3.up, aimForward).normalized;
+            Vector3 launchDir  = Quaternion.AngleAxis(_launchAngleOverride, aimRight) * aimForward;
             impulse = launchDir * currentForce;
         }
         else
